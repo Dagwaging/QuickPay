@@ -1,9 +1,10 @@
 var figo = require("figo");
 var open = require("open");
+
 var clientId = "CMpd1Z4YK98zWLeZyr-9A4Q-YO_AFrALkSz85ABpHFsc";
 var secret = "SINAbQb46PiQNkPTGOxxMOd2wD9orWnO8AA58_42F6rg";
 
-var connection = new figo.Connection(clientId, secret, "http://my-domain.org/redirect-url");
+var connection = new figo.Connection(clientId, secret, "http://localhost:3000/");
 
 var start_login = function() {
     // Open web browser to kick of the login process.
@@ -41,31 +42,32 @@ var process_redirect = function(authorization_code, state) {
 
 
 $(document).ready(function() {
-    $( "#create" ).onclick( function() { $(this).post("https://api.figo.me/auth/user", $( "#new_user" ).serializeToString(),
-        function(data, result) {
-            if (result.equals("error")) {
-                alert("User with that email already exists");
-            } else if (result.equals("success")) {
-                window.location.href = "userHome.html";
-            }})});
+    $( "#create" ).onclick( function() {
+        connection.query_api("/auth/user", $( "#new_user").serialize(),
+            function(data, result) {
+                if (result === "error") {
+                    alert("User with that email already exists");
+                } else if (result === "success") {
+                    window.location.href = "userHome.html";}})});
 
-    $("#unlock").onclick( function() { $(this).post("https://api.figo.me/auth/unlock", "{\"username\": \""+$( "#logform").elements["email"]+"\"}",
-        function(data, result) {
-            if (result.equals("error")) {
-                alert("No user associated with given email");
-            } else if (result.equals("success")) {
-                window.location.href = "#";
-                alert("Reset Password email sent");
-            }})});
+    $("#unlock").onclick( function() {
+        connection.query_api("/auth/unlock", "{\"username\": \""+$( "#logform").elements["email"]+"\"}",
+            function(data, result) {
+                if (result === "error") {
+                    alert("No user associated with given email");
+                } else if (result === "success") {
+                    window.location.href = "#";
+                    alert("Reset Password email sent");}})});
 
-    $("#login").onclick( function() { $(this).post("https://api.figo.me/rest/user", $( "#logform" ).serializeToString(),
-        function(data, result) {
-            if (result.equals("error")) {
-                alert("Incorrect email or password");
-            } else if (result.equals("success")) {
-                alert("It worked");
-                window.location.href = "userHome.html";
-            } else {
-                alert("Failed");
-            }})});
+    $("#login").onclick( function() {
+        start_login();
+        connection.query_api("/rest/user", $( "#logform").serialize(),
+            function(data, result) {
+                if (result === "error") {
+                    alert("Incorrect email or password");
+                } else if (result === "success") {
+                    alert("It worked");
+                    window.location.href = "userHome.html";
+                } else {
+                    alert("Failed");}})});
 });

@@ -1,0 +1,376 @@
+//
+// Copyright (c) 2013 figo GmbH
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+//
+
+var querystring = require("querystring");
+
+// ### Abstract base object for model objects
+//
+// The constructor instantiates a model object from a JSON object.
+//
+// Constructor parameters:
+//
+// - **session** (`Session`) - figo `Session` object
+//
+// - **obj** (`Object`) - use keys of this JSON object for model object creation
+//
+var Base = function(session, obj) {
+  this.session = session;
+
+  for (var key in obj) {
+    var value = obj[key];
+    if (key === "status" && typeof value === "object") {
+      this[key] = new SynchronizationStatus(session, value);
+    } else if (key === "balance" && typeof value === "object") {
+      this[key] = new AccountBalance(session, value);
+    } else if (key.search(/_date$/) !== -1 || key.search(/_timestamp$/) !== -1) {
+      this[key] = new Date(value);
+    } else {
+      this[key] = value;
+    }
+  }
+};
+Base.prototype.dump = function() {
+  var object = this;
+  var result = {};
+  this.dump_attributes.forEach(function(value) {
+    if (typeof object[value] !== 'undefined') {
+      if (object[value] != null) {
+        result[value] = object[value];
+      }
+    }
+  });
+  return result;
+}
+
+
+// ### Object representing one bank account of the user
+var Account = function(session, json) {
+  Base.call(this, session, json);
+
+  // Properties:
+  //
+  // - **account_id** (`String`) - Internal figo Connect account ID
+  //
+  // - **bank_id** (`String`) - Internal figo Connect bank ID
+  //
+  // - **name** (`String`) - Account name
+  //
+  // - **owner** (`String`) - Account owner
+  //
+  // - **auto_sync** (`Boolean`) -  This flag indicates whether the account will be automatically synchronized.
+  //
+  // - **account_number** (`String`) - Account number
+  //
+  // - **bank_code** (`String`) - Bank code
+  //
+  // - **bank_name** (`String`) - Bank name
+  //
+  // - **currency** (`String`) - Three-character currency code.
+  //
+  // - **iban** (`String`) - IBAN
+  //
+  // - **bic** (`String`) - BIC
+  //
+  // - **type** (`String`) - Account type; One of the constants of the `AccountType` object
+  //
+  // - **icon** (`String`) - Account icon URL
+  //
+  // - **additional_icons** (`Object`) - Account icon in other resolutions
+  //
+  // - **status** (`String`) - Synchronization status object
+  //
+  // - **balance** (`AccountBalance`) - the balance of the account
+
+  // Methods:
+
+  // **get_transactions** - Retrieve list of transactions of this account.
+  //
+  // - **options** (`Object`) - further options
+  //
+  //     - **since** (`String`, `Date`) - This field can either be a transaction ID or a date.
+  //
+  //     - **count** (`Number`) - Limit the number of returned transactions.
+  //
+  //     - **offset** (`Number`) - which offset into the result set should be used to determin the first transaction to return (useful in combination with count).
+  //
+  //     - **include_pending** (`Boolean`) - This flag indicates whether pending transactions should be included
+  //          in the response; pending transactions are always included as a complete set, regardless of
+  //          the field `since`.
+  //
+  // - **callback** (`Function`) - callback function with two parameters: `error` and `result`;
+  //       The result parameter is an array of `Transaction` objects, one for each transaction of this account
+  //
+  this.get_transactions = function(options, callback) {
+    options = options === null ? {} : options;
+    options.account_id = this.account_id;
+    session.get_transactions(options, callback);
+  };
+
+  // **get_transaction** - Retrieve specific transaction.
+  //
+  // - **transaction_id** (`String`) - ID of the transaction to be retrieved
+  //
+  // - **callback** (`Function`) - callback function with two parameters: `error` and `result`;
+  //       The result parameter is a `Transaction` object.
+  //
+  this.get_transaction = function(transaction_id, callback) {
+    session.get_transaction(this.account_id, transaction_id, callback);
+  };
+
+  // **get_payments** - Retrieve payments on this account
+  //
+  // - **callback** (`Function`) - callback function with two parameters: `error` and `result`;
+  //       The result parameter is an array of `Payment` objects.
+  //
+  this.get_payments = function(callback) {
+    session.get_payments(this.account_id, callback);
+  }
+
+  // **get_payment** - Retrieve a specific payment on this account
+  //
+  // - **payment_id** (`String`) - ID of the payment to be retrieved
+  //
+  // - **callback** (`Function`) - callback function with two parameters: `error` and `result`;
+  //       The result parameter is a `Payment` object.
+  //
+  this.get_payment = function(payment_id, callback) {
+    session.get_payment(this.account_id, payment_id, callback);
+  }
+
+  // **get_bank** - Retrieve the bank of this account
+  //
+  // - **callback**(`Function`) - callback function with two parameters: `error` and `result`;
+  //       The result parameter is a `Bank` object.
+  //
+  this.get_bank = function(callback) {
+    session.get_bank(this.bank_id, callback);
+  }
+};
+Account.prototype = new Base();
+Account.prototype.constructor = Account;
+Account.prototype.dump_attributes = ["name", "owner", "auto_sync"];
+
+
+// ### Object representing the balance of a certain bank account of the user
+var AccountBalance = function(session, json) {
+  Base.call(this, session, json);
+
+  // Properties:
+  //
+  // - **balance** (`Number`) - Account balance or `undefined` if the balance is not yet known.
+  //
+  // - **balance_date** (`Date`) - Bank server timestamp of balance or `undefined` if the balance is not yet known.
+  //
+  // - **credit_line** (`Number`) - Credit line
+  //
+  // - **monthly_spending_limit** (`Number`) - User-defined spending limit
+  //
+  // - **status** (`String`) - Synchronization status object
+};
+AccountBalance.prototype = new Base();
+AccountBalance.prototype.constructor = AccountBalance;
+AccountBalance.prototype.dump_attributes = ["credit_line", "monthly_spending_limit"];
+
+
+// ### Object representing one bank transaction on a certain bank account of the user
+var Transaction = function(session, json) {
+  Base.call(this, session, json);
+
+  // Properties:
+  //
+  // - **transaction_id** (`String`) - Internal figo Connect transaction ID
+  //
+  // - **account_id** (`String`) - Internal figo Connect account ID
+  //
+  // - **name** (`String`) - Name of originator or recipient
+  //
+  // - **account_number** (`String`) - Account number of originator or recipient
+  //
+  // - **bank_code** (`String`) - Bank code of originator or recipient
+  //
+  // - **bank_name** (`String`) - Bank name of originator or recipient
+  //
+  // - **amount** (`String`) - Transaction amount
+  //
+  // - **currency** (`String`) - Three-character currency code
+  //
+  // - **booking_date** (`Date`) - Booking date
+  //
+  // - **value_date** (`Date`) - Value date
+  //
+  // - **purpose** (`String`) - Purpose text
+  //
+  // - **type** (`String`) - Transaction type; One of the constants of the `TransactionType` object
+  //
+  // - **booking_text** (`String`) - Booking text
+  //
+  // - **booked** (`Boolean`) - This flag indicates whether the transaction is booked or pending.
+  //
+  // - **creation_timestamp** (`Date`) - Internal creation timestamp on the figo Connect server
+  //
+  // - **modification_timestamp** (`Date`) - Internal modification timestamp on the figo Connect server
+};
+Transaction.prototype = new Base();
+Transaction.prototype.constructor = Transaction;
+Transaction.prototype.dump_attributes = [];
+
+
+// ### Object representing the bank server synchronization status
+var SynchronizationStatus = function(session, json) {
+  Base.call(this, session, json);
+
+  // Properties:
+  //
+  // - **code** (`Number`) - Internal figo Connect status code
+  //
+  // - **message** (`String`) - Human-readable error message
+  //
+  // - **sync_timestamp** (`Date`) - Timestamp of last synchronization
+  //
+  // - **success_timestamp** (`Date`) - Timestamp of last successful synchronization
+};
+SynchronizationStatus.prototype = new Base();
+SynchronizationStatus.prototype.constructor = SynchronizationStatus;
+SynchronizationStatus.prototype.dump_attributes = [];
+
+
+// ### Object representing a configured notification, e.g. a webhook or email hook
+var Notification = function(session, json) {
+  Base.call(this, session, json);
+
+  // Properties:
+  //
+  // - **notification_id** (`String`) - Internal figo Connect notification ID from the notification registration response
+  //
+  // - **observe_key** (`String`) - One of the notification keys specified in the figo Connect API specification
+  //
+  // - **notify_url** (`String`) - Notification messages will be sent to this URL.
+  //
+  // - **state** (`String`) - State similiar to sync and logon process; It will passed as POST payload for webhooks.
+};
+Notification.prototype = new Base();
+Notification.prototype.constructor = Notification;
+Notification.prototype.dump_attributes = ["observe_key", "notify_uri", "state"];
+
+
+// ### Object representing a BankContact
+var Bank = function(session, json) {
+  Base.call(this, session, json);
+
+  // Properties:
+  //
+  // - **bank_id** (`String`) - Internal figo Connect bank ID
+  //
+  // - **sepa_creditor_id** (`String`) - SEPA direct debit creditor ID
+  //
+  // - **save_pin** (`Boolean`) - This flag indicates whether the user has chosen to save the PIN on the figo Connect server
+}
+Bank.prototype = new Base();
+Bank.prototype.constructor = Bank;
+Bank.prototype.dump_attributes = ["sepa_creditor_id"];
+
+// ### Object representing a Payment
+var Payment = function(session, json) {
+  Base.call(this, session, json);
+
+  // Properties:
+  //
+  // - **payment_id** (`String`) - Internal figo Connect payment ID
+  //
+  // - **account_id** (`String`) -  Internal figo Connect account ID
+  //
+  // - **type** (`String`) -  Payment type
+  //
+  // - **name** (`String`) -  Name of creditor or debtor
+  //
+  // - **account_number** (`String`) -  Account number of creditor or debtor
+  //
+  // - **bank_code** (`String`) -  Bank code of creditor or debtor
+  //
+  // - **bank_name** (`String`) -  Bank name of creditor or debtor
+  //
+  // - **bank_icon** (`String`) -  Icon of creditor or debtor bank
+  //
+  // - **bank_additional_icons** (`Object`) -  Icon of the creditor or debtor bank in other resolutions
+  //
+  // - **amount** (`Number`) -  Order amount
+  //
+  // - **currency** (`String`) -  Three-character currency code
+  //
+  // - **purpose** (`String`) -  Purpose text
+  //
+  // - **submission_timestamp** (`Date`) -  Timestamp of submission to the bank server
+  //
+  // - **creation_timestamp** (`Date`) -  Internal creation timestamp on the figo Connect server
+  //
+  // - **modification_timestamp** (`Date`) -  Internal modification timestamp on the figo Connect server
+  //
+  // - **transaction_id** (`String`) -  Transaction ID. This field is only set if the payment has been matched to a transaction
+}
+Payment.prototype = new Base();
+Payment.prototype.constructor = Payment;
+Payment.prototype.dump_attributes = ["type", "name", "account_number", "bank_code", "amount", "currency", "purpose"];
+
+// ### Object representing an user
+var User = function(session, json) {
+  Base.call(this, session, json);
+
+  // Properties:
+  //
+  // - **user_id** (`String`) - Internal figo Connect user ID
+  //
+  // - **name** (`String`) -  First and last name
+  //
+  // - **email** (`String`) -  Email address
+  //
+  // - **address** (`Object`) -  Postal address for bills, etc.
+  //
+  // - **verified_email** (`Boolean`) - This flag indicates whether the email address has been verified
+  //
+  // - **send_newsletter** (`Boolean`) -  This flag indicates whether the user has agreed to be contacted by email
+  //
+  // - **language** (`String`) -  Two-letter code of preferred language
+  //
+  // - **premium** (`Boolean`) -  This flag indicates whether the figo Account plan is free or premium
+  //
+  // - **premium_expires_on** (`Date`) -  Timestamp of premium figo Account expiry
+  //
+  // - **premium_subscription** (`String`) -  Provider for premium subscription or Null of no subscription is active
+  //
+  // - **join_date** (`Date`) -  Timestamp of figo Account registration
+}
+User.prototype = new Base();
+User.prototype.constructor = User;
+User.prototype.dump_attributes = ["name", "address", "send_newsletter", "language"];
+
+
+// Exported symbols.
+module.exports = {
+  Account:               Account,
+  AccountBalance:        AccountBalance,
+  Transaction:           Transaction,
+  SynchronizationStatus: SynchronizationStatus,
+  Notification:          Notification,
+  Bank:                  Bank,
+  User:                  User,
+  Payment:               Payment
+};
