@@ -1157,12 +1157,12 @@ button, .button {
   font-family: "Helvetica Neue", Helvetica, Roboto, Arial, sans-serif;
   font-weight: normal;
   line-height: normal;
-  margin: 0 0 1.25rem;
+  margin: 0 0 1rem;
   position: relative;
   text-align: center;
   text-decoration: none;
   display: inline-block;
-  padding: 1rem 2rem 1.0625rem 2rem;
+  padding: 1rem 1rem 1rem 1rem;
   font-size: 1rem;
   background-color: #008CBA;
   border-color: #007095;
