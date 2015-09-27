@@ -4,7 +4,7 @@ var open = require("open");
 var clientId = "CMpd1Z4YK98zWLeZyr-9A4Q-YO_AFrALkSz85ABpHFsc";
 var secret = "SINAbQb46PiQNkPTGOxxMOd2wD9orWnO8AA58_42F6rg";
 
-var connection = new figo.Connection(clientId, secret, "http://localhost:3000/");
+var connection = new figo.Connection(clientId, secret, "http://localhost:3000/test");
 
 var start_login = function() {
     // Open web browser to kick of the login process.
@@ -39,35 +39,50 @@ var process_redirect = function(authorization_code, state) {
 };
 
 
+function route(type) {
+    if (type === "login") {
+        login();
+    } else if (type === "unlock") {
+        unlock();
+    } else {
+        alert("none");
+    }
+}
+
+
+function login() {
+    start_login();
+    connection.query_api("/rest/user", $( "#logform").serialize(),
+        function(data, result) {
+            if (result === "error") {
+                alert("Incorrect email or password");
+            } else if (result === "success") {
+                alert("It worked");
+                window.location.href = "userHome.html";
+            } else {
+                alert("Failed");}});
+    alert("logged in");
+}
+
+function unlock() {
+    start_login();
+    connection.query_api("/auth/unlock", "{\"username\": \""+$( "#logform").elements["email"]+"\"}",
+        function(data, result) {
+            if (result === "error") {
+                alert("No user associated with given email");
+            } else if (result === "success") {
+                window.location.href = "#";
+                alert("Reset Password email sent");}});
+    alert("unlocked");
+}
 
 
 $(document).ready(function() {
-    $( "#create" ).onclick( function() {
+    $( "#create" ).click( function() {
         connection.query_api("/auth/user", $( "#new_user").serialize(),
             function(data, result) {
                 if (result === "error") {
                     alert("User with that email already exists");
                 } else if (result === "success") {
                     window.location.href = "userHome.html";}})});
-
-    $("#unlock").onclick( function() {
-        connection.query_api("/auth/unlock", "{\"username\": \""+$( "#logform").elements["email"]+"\"}",
-            function(data, result) {
-                if (result === "error") {
-                    alert("No user associated with given email");
-                } else if (result === "success") {
-                    window.location.href = "#";
-                    alert("Reset Password email sent");}})});
-
-    $("#login").onclick( function() {
-        start_login();
-        connection.query_api("/rest/user", $( "#logform").serialize(),
-            function(data, result) {
-                if (result === "error") {
-                    alert("Incorrect email or password");
-                } else if (result === "success") {
-                    alert("It worked");
-                    window.location.href = "userHome.html";
-                } else {
-                    alert("Failed");}})});
 });

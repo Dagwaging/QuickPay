@@ -4,6 +4,7 @@
 <head>
     <title>QuickPay</title>
     <link rel="stylesheet" type="text/css" href="foundation.css">
+    <script language="javascript" type="text/javascript" src="calls.js"></script>
 
 </head>
 <body>
@@ -39,8 +40,8 @@
                     <form accept-charset="UTF-8" action="#" enctype="json" id="logform" method="post">
                         Email <input id="email" name="email" type="text">
                         Password <input id="pass" name="pass" type="password">
-                        <button type="submit" id="login" value="login">Login</button>
-                        <button type="submit" id="unlock" value="reset">Reset Password</button>
+                        <button type="submit" id="login" value="login" onclick="route('login')">Login</button>
+                        <button type="submit" id="unlock" value="reset" onclick="route('unlock')">Reset Password</button>
                     </form>
                 </td>
                 <td width="25"></td>
@@ -54,25 +55,6 @@
                 </td>
            </tr>
         </table>
-    </div>
-</div>
-
-<div class="row">
-    <div class="large-12 columns">
-
-        <div class="panel">
-            <h4>Get in touch!</h4>
-
-            <div class="row">
-                <div class="large-9 columns">
-                    <p>We'd love to hear from you!</p>
-                </div>
-                <div class="large-3 columns">
-                    <a href="#" class="radius button right">Contact Us</a>
-                </div>
-            </div>
-        </div>
-
     </div>
 </div>
 
