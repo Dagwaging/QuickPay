@@ -1,1 +1,1 @@
-include ':app', ':java-figo'
+include ':app', ':libs:java-figo'
