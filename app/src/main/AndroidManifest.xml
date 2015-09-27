@@ -28,8 +28,12 @@
         </activity>
         <activity
             android:name=".AccountsActivity"
-            android:theme="@style/Theme.AppCompat.Light.Dialog.Alert"
-            android:label="@string/title_activity_accounts" >
+            android:label="@string/title_activity_accounts"
+            android:theme="@style/Theme.AppCompat.Light.Dialog.Alert" >
+        </activity>
+        <activity
+            android:name=".PaymentActivity"
+            android:label="@string/title_activity_payment" >
         </activity>
     </application>
 

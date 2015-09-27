@@ -3,4 +3,10 @@
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
     <string name="title_activity_accounts">AccountsActivity</string>
+    <string name="title_activity_payment">Send Payment</string>
+    <string name="euro_symbol">€</string>
+    <string name="bar_change_price">Amount to send</string>
+    <string name="point_symbol">.</string>
+    <string name="accept_price_change">OK</string>
+    <string name="reject_price_change">Cancel</string>
 </resources>

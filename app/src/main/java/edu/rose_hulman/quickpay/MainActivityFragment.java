@@ -1,6 +1,8 @@
 package edu.rose_hulman.quickpay;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
@@ -11,10 +13,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ListView;
+import android.widget.NumberPicker;
 
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 
+import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
 
@@ -27,6 +31,7 @@ import ch.uepaa.p2pkit.discovery.P2pListener;
 import ch.uepaa.p2pkit.discovery.Peer;
 import me.figo.FigoSession;
 import me.figo.models.Account;
+import me.figo.models.Payment;
 
 
 /**
@@ -192,11 +197,65 @@ public class MainActivityFragment extends Fragment implements ConnectionCallback
     public void onPeerUpdatedDiscoveryInfo(Peer peer) {
         User user = new User(peer);
         adapter.put(user);
+        this.showPaymentDialog();
+//        String token = PreferenceManager
+//                .getDefaultSharedPreferences(getActivity())
+//                .getString(MainActivity.EXTRA_TOKEN, null);
+//        FigoSession session = new FigoSession(token, RequestQueueProvider.getInstance(getActivity()));
+//        Payment payment = new Payment("Transfer", user., user.accountNumber, user.bankCode, "QuickPay Transaction", BigDecimal.TEN);
+//        session.addPayment(payment, new Response.Listener<Payment>() {
+//            @override
+//            public void onResponse(Payment payment) {
+//                session.sub
+//            }
+//        }, );
     }
 
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
         User user = adapter.getItem(position);
+    }
 
+    private void showPaymentDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+        LayoutInflater inflater = getActivity().getLayoutInflater();
+        View theView = inflater.inflate(R.layout.dialog_payment, null);
+
+        final NumberPicker unit_euro = (NumberPicker) theView.findViewById(R.id.euro_picker);
+        final NumberPicker cent = (NumberPicker) theView.findViewById(R.id.cent_picker);
+
+        builder.setView(theView)
+                .setPositiveButton(R.string.accept_price_change, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+//                        Log.d("DBG", "Amount is: " + unit_euro.getValue() + "." + cent.getValue());
+                        // Pass back amount input here
+                    }
+                })
+                .setNegativeButton(R.string.reject_price_change, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        // Blank
+                    }
+                });
+
+        unit_euro.setMinValue(0);
+        unit_euro.setMaxValue(100);
+
+        String cents[] = new String[100];
+        for (int i = 0; i < 100; i++) {
+            if (i < 10) {
+                cents[i] = "0" + i;
+            } else {
+                cents[i] = "" + i;
+            }
+        }
+        cent.setDisplayedValues(cents);
+
+        cent.setMinValue(0);
+        cent.setMaxValue(99);
+        cent.setValue(0);
+
+        builder.show();
     }
 }
