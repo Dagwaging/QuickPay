@@ -7,6 +7,10 @@ import android.view.MenuItem;
 
 
 public class MainActivity extends ActionBarActivity {
+    public static final String EXTRA_EXPIRES = "expires";
+    public static final String EXTRA_TOKEN = "token";
+    public static final String EXTRA_ACCOUNT = "account";
+    public static final String EXTRA_BANK = "bank";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
